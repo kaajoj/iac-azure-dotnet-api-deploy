@@ -1,0 +1,73 @@
+name: Deploy .NET Web App to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  AZURE_WEBAPP_NAME: "dotnetappdemo-web"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code/repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Publish .NET app
+        run: dotnet publish src/MyWebApp/MyWebApp.csproj -c Release -o webapp
+
+      - name: Upload published app as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-dotnet-app
+          path: webapp
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ./webapp
+
+      - name: Test deployed production slot
+        run: |
+          echo "Testing production slot..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/hello)
+          if [ "$response" -ne 200 ]; then
+            echo "Production slot test failed with status $response"
+            exit 1
+          else
+            echo "Production slot test passed!"
+          fi
+
+      # - name: Deploy to canary slot
+      #   uses: azure/webapps-deploy@v2
+      #   with:
+      #     app-name: ${{ env.AZURE_WEBAPP_NAME }}
+      #     slot-name: canary
+      #     package: ./webapp
+
+      # - name: Test deployed canary slot
+      #   run: |
+      #     echo "Testing canary slot..."
+      #     response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}-canary.azurewebsites.net/hello)
+      #     if [ "$response" -ne 200 ]; then
+      #       echo "Canary slot test failed with status $response"
+      #       exit 1
+      #     else
+      #       echo "Canary slot test passed!"
+      #     fi
