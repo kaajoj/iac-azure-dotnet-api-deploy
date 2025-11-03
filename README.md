@@ -1,4 +1,4 @@
-# Deploying .NET Web API to Azure with Terraform & GitHub Actions
+# Deploying .NET Web API to Azure App Service with Terraform & GitHub Actions
 
 This project demonstrates how to deploy a .NET Web API application to Microsoft Azure using **Terraform** for infrastructure provisioning and **GitHub Actions** for CI/CD, providing an end-to-end example setup.
 
